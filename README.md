@@ -25,10 +25,10 @@ This project do:
 - Remove canvas background image.
 - Save drawn Canvas to File of deffrent Image formats (png, bmp, jpg, gif, tif).
 
-# Screenshot
-![alt text](https://github.com/uSafi/Drawing-With-Winforms-.NET-6/blob/master/Drawing%20With%20Winforms/Screenshot.png?raw=true)
+![Screenshot](https://user-images.githubusercontent.com/43465134/174632386-48945e39-f9fe-4566-86b4-95db49a3509b.png)
 
 # License and copyright
 © Usama Safi Yassir
 
 Licensed under [MIT License](https://github.com/uSafi/Drawing-With-Winforms-.NET-6/blob/master/LICENSE).
+
