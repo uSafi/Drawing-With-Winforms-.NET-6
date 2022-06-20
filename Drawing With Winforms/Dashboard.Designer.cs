@@ -94,7 +94,7 @@ namespace Drawing_With_Winforms
             // Canvas
             // 
             this.Canvas.BackColor = System.Drawing.Color.White;
-            this.Canvas.Location = new System.Drawing.Point(0, 0);
+            this.Canvas.Location = new System.Drawing.Point(4, 4);
             this.Canvas.Name = "Canvas";
             this.Canvas.Size = new System.Drawing.Size(648, 484);
             this.Canvas.TabIndex = 3;
