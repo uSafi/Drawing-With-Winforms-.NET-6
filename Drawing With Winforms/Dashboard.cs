@@ -4,6 +4,8 @@ using Drawing_With_Winforms.Primitives;
 using Drawing_With_Winforms.Properties;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+using System.Windows.Input;
 
 namespace Drawing_With_Winforms
 {
@@ -11,11 +13,13 @@ namespace Drawing_With_Winforms
     {
         private Stack<IShape> Shapes = new Stack<IShape>();
         private Stack<IShape> UndoedShapes = new Stack<IShape>();
-        private IShape selectedShape;
+        private IShape NewShape;
         private bool StartInteractiveShape = false;
         private bool IsMouseDown = false;
         private Point DragStartPoint;
         private IShape? DragedShape = null;
+        private bool DeleteKeyPressed;
+
         public Dashboard()
         {
             InitializeComponent();
@@ -23,8 +27,8 @@ namespace Drawing_With_Winforms
             btnStroke.BackColor = Settings.Default.StrokeColor;
             btnFill.BackColor = Settings.Default.FillColor;
 
-            (Pen pen, Color? fill) = GetColors();
-            selectedShape = new LineFigure(pen, fill);
+            (Pen pen, Color? fill) = GetPenAndFill();
+            NewShape = new LineFigure(pen, fill);
 
             chkCanUseFill.Checked = Settings.Default.CanUseFill;
             Canvas.BackColor = btnCanvasBackgroundColor.BackColor = Settings.Default.CanvasBackgroundColor;
@@ -43,13 +47,13 @@ namespace Drawing_With_Winforms
             if (DialogResult.OK == colorDialog.ShowDialog())
             {
                 btnStroke.BackColor = colorDialog.Color;
-                selectedShape.Pen = GetColors().pen;
+                NewShape.Pen = GetPenAndFill().pen;
             }
         }
         private void chkCanUseFill_CheckedChanged(object sender, EventArgs e)
         {
             btnFill.Enabled = chkCanUseFill.Checked;
-            selectedShape.Fill = chkCanUseFill.Checked != false ? btnFill.BackColor : null;
+            NewShape.Fill = chkCanUseFill.Checked != false ? btnFill.BackColor : null;
         }
 
         private void btnFill_Click(object sender, EventArgs e)
@@ -59,7 +63,7 @@ namespace Drawing_With_Winforms
             if (DialogResult.OK == colorDialog.ShowDialog())
             {
                 btnFill.BackColor = colorDialog.Color;
-                selectedShape.Fill = btnFill.BackColor;
+                NewShape.Fill = btnFill.BackColor;
             }
         }
         private void Canvas_MouseClick(object sender, MouseEventArgs e)
@@ -69,8 +73,8 @@ namespace Drawing_With_Winforms
             int x = e.X;
             int y = e.Y;
 
-            selectedShape.Points.Add(new Point(x, y));
-            if (selectedShape.Points.Count == selectedShape.MaxPoints)
+            NewShape.Points.Add(new Point(x, y));
+            if (NewShape.Points.Count == NewShape.MaxPoints)
             {
                 AddRigidShape();
             }
@@ -78,10 +82,10 @@ namespace Drawing_With_Winforms
             {
                 var lastShape = Shapes.Peek();
                 var lastShapePoint = lastShape.Points.TakeLast(1);
-                var theNewPoint = selectedShape.Points[selectedShape.Points.Count - 1];
-                selectedShape.Points[0] = lastShapePoint.First();
-                selectedShape.Points.Add(theNewPoint);
-                if (selectedShape.Points.Count == selectedShape.MaxPoints)
+                var theNewPoint = NewShape.Points[NewShape.Points.Count - 1];
+                NewShape.Points[0] = lastShapePoint.First();
+                NewShape.Points.Add(theNewPoint);
+                if (NewShape.Points.Count == NewShape.MaxPoints)
                     AddRigidShape();
             }
             else
@@ -103,10 +107,13 @@ namespace Drawing_With_Winforms
         }
         private void SharedShapesButtons_CheckedChanged(object sender, EventArgs e)
         {
-            selectedShape = CreateShape();
+            NewShape = CreateShape();
         }
-
-        private (Pen pen, Color? fill) GetColors()
+        private void tbStrokeThickness_Scroll(object sender, EventArgs e)
+        {
+            NewShape.Pen = GetPenAndFill().pen;
+        }
+        private (Pen pen, Color? fill) GetPenAndFill()
         {
             
             var thickness = tbStrokeThickness.Value;
@@ -116,7 +123,7 @@ namespace Drawing_With_Winforms
         }
         private IShape CreateShape()
         {
-            (Pen pen, Color? fill) = GetColors();
+            (Pen pen, Color? fill) = GetPenAndFill();
             ShapeType selectedType = ShapeType.Line;
             foreach (ShapeRadioButton control in flpFiguresContainer.Controls)
             {
@@ -142,7 +149,7 @@ namespace Drawing_With_Winforms
         }
         private void AddRigidShape()
         {
-            PushShape(selectedShape);
+            PushShape(NewShape);
             Canvas.Invalidate();
         }
 
@@ -224,8 +231,9 @@ namespace Drawing_With_Winforms
         {
             if (!chkInteractiveMode.Checked) return;
             if (e.Button == MouseButtons.Right) return;
+            if (e.Button == MouseButtons.Left && ModifierKeys == Keys.Control) return;
 
-            selectedShape.Points.Add(new Point(e.X, e.Y));
+            NewShape.Points.Add(new Point(e.X, e.Y));
 
             IsMouseDown = true;
         }
@@ -253,10 +261,10 @@ namespace Drawing_With_Winforms
             {
                 int x = e.X;
                 int y = e.Y;
-                if (selectedShape.Points.Count % 2 != 0 && selectedShape.Points.Count != selectedShape.MaxPoints)
-                    selectedShape.Points.Add(new Point(x, y));
-                else if (selectedShape.Points.Count > 1)
-                    selectedShape.Points[selectedShape.Points.Count - 1] = new Point(x, y);
+                if (NewShape.Points.Count % 2 != 0 && NewShape.Points.Count != NewShape.MaxPoints)
+                    NewShape.Points.Add(new Point(x, y));
+                else if (NewShape.Points.Count > 1)
+                    NewShape.Points[NewShape.Points.Count - 1] = new Point(x, y);
 
                 if (Shapes.Count != 0 && StartInteractiveShape)
                 {
@@ -265,7 +273,7 @@ namespace Drawing_With_Winforms
 
                 StartInteractiveShape = true;
 
-                PushShape(selectedShape);
+                PushShape(NewShape);
                 Canvas.Invalidate();
             }
         }
@@ -274,9 +282,9 @@ namespace Drawing_With_Winforms
         {
             DragedShape = null;
 
-            if (selectedShape.Points.Count == selectedShape.MaxPoints)
+            if (NewShape.Points.Count == NewShape.MaxPoints)
             {
-                selectedShape = CreateShape();
+                NewShape = CreateShape();
                 StartInteractiveShape = false;
             }
 
@@ -302,7 +310,7 @@ namespace Drawing_With_Winforms
                     Brush aGradientBrush = new LinearGradientBrush(new Point(0, 0), new Point(1, 2), shape.Pen.Color, Color.Silver);
                     shape.Pen.Brush = aGradientBrush;
                     Canvas.Invalidate();
-                    if (e.Button == MouseButtons.Right)
+                    if (e.Button == MouseButtons.Left && ModifierKeys == Keys.Control)
                     {
                         DragedShape = shape;
                         break;
@@ -511,6 +519,38 @@ namespace Drawing_With_Winforms
             lblResizeCanvas.Text = $"{Canvas.Width}, {Canvas.Height}";
         }
 
+        //-------------------------------- On Delete key pressed, Delete Figure ------------
+
+        private void Dashboard_KeyDown(object sender, KeyEventArgs e)
+        {
+            DeleteKeyPressed = e.KeyCode == Keys.Delete ? true : false;
+            if (DeleteKeyPressed)
+            {
+                IShape? FigureMarkToDelete = null;
+                foreach (var shape in Shapes)
+                {
+                    if (shape.Path is null) continue;
+                    if (shape.Path.IsOutlineVisible(Canvas.PointToClient(MousePosition), shape.Pen))
+                    {
+                        FigureMarkToDelete = shape;
+                        break;
+                    }
+                }
+                if (FigureMarkToDelete != null)
+                {
+                    UndoedShapes.Push(FigureMarkToDelete);
+                    btnRedo.Enabled = true;
+                    Shapes = new Stack<IShape>(Shapes.Where(i => i != FigureMarkToDelete).Reverse());
+                    Canvas.Invalidate();
+                }
+            }
+        }
+
+        private void Dashboard_KeyUp(object sender, KeyEventArgs e)
+        {
+            DeleteKeyPressed = false;
+        }
+
         // ----------------------------- On Closing the app ------------------------------
 
         private void Dashboard_FormClosing(object sender, FormClosingEventArgs e)
@@ -522,12 +562,5 @@ namespace Drawing_With_Winforms
             Settings.Default.CanvasBackgroundColor = btnCanvasBackgroundColor.BackColor;
             Settings.Default.Save();
         }
-
-        private void tbStrokeThickness_Scroll(object sender, EventArgs e)
-        {
-            selectedShape.Pen = GetColors().pen;
-        }
-
-
     }
 }
