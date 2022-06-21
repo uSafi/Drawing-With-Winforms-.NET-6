@@ -582,10 +582,13 @@ namespace Drawing_With_Winforms
             this.ClientSize = new System.Drawing.Size(824, 561);
             this.Controls.Add(this.tableLayoutPanel_Main);
             this.DoubleBuffered = true;
+            this.KeyPreview = true;
             this.Name = "Dashboard";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Drawing With Winforms";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Dashboard_FormClosing);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Dashboard_KeyDown);
+            this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.Dashboard_KeyUp);
             ((System.ComponentModel.ISupportInitialize)(this.Canvas)).EndInit();
             this.pnlContainer.ResumeLayout(false);
             this.pnlTaskbar.ResumeLayout(false);

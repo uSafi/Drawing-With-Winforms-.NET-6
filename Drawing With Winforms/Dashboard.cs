@@ -4,6 +4,8 @@ using Drawing_With_Winforms.Primitives;
 using Drawing_With_Winforms.Properties;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+using System.Windows.Input;
 
 namespace Drawing_With_Winforms
 {
@@ -16,6 +18,8 @@ namespace Drawing_With_Winforms
         private bool IsMouseDown = false;
         private Point DragStartPoint;
         private IShape? DragedShape = null;
+        private bool DeleteKeyPressed;
+
         public Dashboard()
         {
             InitializeComponent();
@@ -23,7 +27,7 @@ namespace Drawing_With_Winforms
             btnStroke.BackColor = Settings.Default.StrokeColor;
             btnFill.BackColor = Settings.Default.FillColor;
 
-            (Pen pen, Color? fill) = GetColors();
+            (Pen pen, Color? fill) = GetPenAndFill();
             selectedShape = new LineFigure(pen, fill);
 
             chkCanUseFill.Checked = Settings.Default.CanUseFill;
@@ -43,7 +47,7 @@ namespace Drawing_With_Winforms
             if (DialogResult.OK == colorDialog.ShowDialog())
             {
                 btnStroke.BackColor = colorDialog.Color;
-                selectedShape.Pen = GetColors().pen;
+                selectedShape.Pen = GetPenAndFill().pen;
             }
         }
         private void chkCanUseFill_CheckedChanged(object sender, EventArgs e)
@@ -105,8 +109,11 @@ namespace Drawing_With_Winforms
         {
             selectedShape = CreateShape();
         }
-
-        private (Pen pen, Color? fill) GetColors()
+        private void tbStrokeThickness_Scroll(object sender, EventArgs e)
+        {
+            selectedShape.Pen = GetPenAndFill().pen;
+        }
+        private (Pen pen, Color? fill) GetPenAndFill()
         {
             
             var thickness = tbStrokeThickness.Value;
@@ -116,7 +123,7 @@ namespace Drawing_With_Winforms
         }
         private IShape CreateShape()
         {
-            (Pen pen, Color? fill) = GetColors();
+            (Pen pen, Color? fill) = GetPenAndFill();
             ShapeType selectedType = ShapeType.Line;
             foreach (ShapeRadioButton control in flpFiguresContainer.Controls)
             {
@@ -224,7 +231,7 @@ namespace Drawing_With_Winforms
         {
             if (!chkInteractiveMode.Checked) return;
             if (e.Button == MouseButtons.Right) return;
-
+            if (e.Button == MouseButtons.Left && ModifierKeys == Keys.Control) return;
             selectedShape.Points.Add(new Point(e.X, e.Y));
 
             IsMouseDown = true;
@@ -302,7 +309,7 @@ namespace Drawing_With_Winforms
                     Brush aGradientBrush = new LinearGradientBrush(new Point(0, 0), new Point(1, 2), shape.Pen.Color, Color.Silver);
                     shape.Pen.Brush = aGradientBrush;
                     Canvas.Invalidate();
-                    if (e.Button == MouseButtons.Right)
+                    if (e.Button == MouseButtons.Left && ModifierKeys == Keys.Control)
                     {
                         DragedShape = shape;
                         break;
@@ -511,6 +518,38 @@ namespace Drawing_With_Winforms
             lblResizeCanvas.Text = $"{Canvas.Width}, {Canvas.Height}";
         }
 
+        //-------------------------------- On Delete key pressed, Delete Figure ------------
+
+        private void Dashboard_KeyDown(object sender, KeyEventArgs e)
+        {
+            DeleteKeyPressed = e.KeyCode == Keys.Delete ? true : false;
+            if (DeleteKeyPressed)
+            {
+                IShape? FigureMarkToDelete = null;
+                foreach (var shape in Shapes)
+                {
+                    if (shape.Path is null) continue;
+                    if (shape.Path.IsOutlineVisible(Canvas.PointToClient(MousePosition), shape.Pen))
+                    {
+                        FigureMarkToDelete = shape;
+                        break;
+                    }
+                }
+                if (FigureMarkToDelete != null)
+                {
+                    UndoedShapes.Push(FigureMarkToDelete);
+                    btnRedo.Enabled = true;
+                    Shapes = new Stack<IShape>(Shapes.Where(i => i != FigureMarkToDelete).Reverse());
+                    Canvas.Invalidate();
+                }
+            }
+        }
+
+        private void Dashboard_KeyUp(object sender, KeyEventArgs e)
+        {
+            DeleteKeyPressed = false;
+        }
+
         // ----------------------------- On Closing the app ------------------------------
 
         private void Dashboard_FormClosing(object sender, FormClosingEventArgs e)
@@ -522,12 +561,5 @@ namespace Drawing_With_Winforms
             Settings.Default.CanvasBackgroundColor = btnCanvasBackgroundColor.BackColor;
             Settings.Default.Save();
         }
-
-        private void tbStrokeThickness_Scroll(object sender, EventArgs e)
-        {
-            selectedShape.Pen = GetColors().pen;
-        }
-
-
     }
 }
