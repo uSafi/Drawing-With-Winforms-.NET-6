@@ -1,6 +1,6 @@
 # Drawing With Winforms (.NET 6)
 
-The intention behind this project is to be a simple example\guideline\inspiration of working with GDI+,
+The intention behind this project is to be a simple guideline\inspiration of working with GDI+,
 mainly the ability to draw and move shapes on a UI(winforms) without lagging or flickering.
 
 This project Offer:
