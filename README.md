@@ -14,7 +14,8 @@ This project Offer:
 - Drawing in Manual mode or Free mode (Set points for the figure, or just move the mouse to see the shape freely drawn and sized)
 - Draw One figure at a time, or in Continuous connected figures.
 - Select Stroke, Thickness, Fill to figures.
-- Moving drawn figures around.
+- Moving drawn figures around (Left mouse button + ctrl).
+- Deleting figures (mouse on figure border + Delete key)
 - Undo\Redo drawn figures.
 - Reset Canvas.
 - Change Canvas Bachground Color.
